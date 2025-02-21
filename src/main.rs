@@ -109,7 +109,7 @@ async fn main() {
                 }
             }
         }
-        sleep(Duration::from_millis(1000));
+        sleep(Duration::from_millis(3000));
     });
 
     let server = tokio::spawn(async move {
