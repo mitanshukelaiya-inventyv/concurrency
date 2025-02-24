@@ -13,8 +13,6 @@
 // one is checking that user data and call data and assign(just log that user asisgn to which id number call ) call user's department wise.   
 // create api that return all user , all calls , all assigned task (can stored in one file)
 
-
-
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
@@ -25,6 +23,8 @@ use lazy_static::lazy_static;
 use axum::{response::IntoResponse, routing::get, Json, Router};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use log;
+
 
 lazy_static! {
     static ref USERS: Arc<RwLock<Vec<User>>> = Arc::new(RwLock::new(get_users_dept_wise()));
@@ -36,6 +36,9 @@ lazy_static! {
 
 #[tokio::main]
 async fn main() {
+    std::env::set_var("RUST_LOG", "debug");
+    env_logger::init();
+
     let call_generate_call_clone = Arc::clone(&CALLS);
 
     let change_status_employee_clone = Arc::clone(&USERS);
@@ -51,7 +54,7 @@ async fn main() {
                 let random_index = rand::rng().random_range(0..users_write.len());
                 let user = &mut users_write[random_index];
                 user.status = UserStatus::get_random_user_status();
-                println!("Randomly updated user: {:?}", user);
+                log::debug!("Randomly updated user: {:?}", user);
             }
         }
         sleep(Duration::from_millis(7000));
@@ -83,12 +86,12 @@ async fn main() {
                 let dept = front_call.department.clone();
 
                 //let dept_vec = status_map.get(&dept);
-                println!("{:?}", front_call);
+                log::debug!("{:?}", front_call);
                 for emp in assign_employee_guard.iter_mut() {
                     
                     if emp.department == dept && emp.status == UserStatus::Available {
                         emp.status = UserStatus::OnCall;
-                        println!("call {} assigned to Employee: {}", front_call.id, emp.id);
+                        log::info!("call {} assigned to Employee: {}", front_call.id, emp.id);
                         emp.status = UserStatus::Available;
                         assign_assigned_task_clone_guard.push(AssignedTask{
                             call_id: front_call.id,
@@ -96,7 +99,7 @@ async fn main() {
                             status: String::from("Accepted")
                         });
                     } else if emp.department == dept {
-                        println!(
+                        log::error!(
                             "call {} dropped.... Current User status: {:?}",
                             front_call.id, emp.status
                         );
@@ -113,7 +116,7 @@ async fn main() {
     });
 
     let server = tokio::spawn(async move {
-        println!("Creating server...");
+        log::info!("Creating server...");
 
         let app = Router::new()
         .route("/users", get(get_users))
